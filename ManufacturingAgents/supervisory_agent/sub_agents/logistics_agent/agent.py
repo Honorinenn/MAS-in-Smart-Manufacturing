@@ -1,12 +1,12 @@
 from google.adk.agents import Agent
+from ..shared_tools import default_tools
 
-root_agent = Agent(
+logistics_agent = Agent(
     name="logistics_agent",
-    # https://ai.google.dev/gemini-api/docs/models
-    model="gemini-2.0-flash",
-    description="Logistics agent",
-    instruction="""
-    You are a helpful assistant that plans production in a manufacturing plant. 
-    Ask for the input and return the output.
-    """,
+    instructions=(
+        "Coordinate inbound/outbound shipments, fleet ETAs, and dock schedules. "
+        "Use IoT-Cloud telemetry and MCP.Logistics; replan routes and notify Production/Inventory of impacts."
+    ),
+    model="gpt-4-turbo",
+    tools=default_tools(domains=["logistics"]),
 )

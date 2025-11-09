@@ -1,12 +1,13 @@
 from google.adk.agents import Agent
+from ..shared_tools import default_tools
 
-root_agent = Agent(
+maintenance_agent = Agent(
     name="maintenance_agent",
-    # https://ai.google.dev/gemini-api/docs/models
-    model="gemini-2.0-flash",
-    description="Maintenance agent",
-    instruction="""
-    You are a helpful assistant that plans production in a manufacturing plant. 
-    Ask for the input and return the output.
-    """,
+    instructions=(
+        "Predict failures, schedule preventive/corrective maintenance, and minimize downtime. "
+        "Use LSTM predictions, vibration/temperature traces (TimescaleDB), and MCP.Maintenance work orders. "
+        "Respect production windows and safety."
+    ),
+    model="gpt-4-turbo",
+    tools=default_tools(domains=["maintenance"]),
 )

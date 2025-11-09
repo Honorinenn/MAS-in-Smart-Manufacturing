@@ -1,12 +1,14 @@
+# supervisory_agent/sub_agents/inventory_agent/agent.py
 from google.adk.agents import Agent
+from ..shared_tools import default_tools
 
-root_agent = Agent(
+inventory_agent = Agent(
     name="inventory_agent",
-    # https://ai.google.dev/gemini-api/docs/models
-    model="gemini-2.0-flash",
-    description="Inventory agent",
-    instruction="""
-    You are a helpful assistant that plans production in a manufacturing plant. 
-    Ask for the input and return the output.
-    """,
+    instructions=(
+        "Manage materials, reorder points, and buffer stocks. "
+        "Use TimescaleDB trends and MCP.Inventory context to prevent stockouts/excess. "
+        "Return (decision, reasoning, evidence, MCP-writes)."
+    ),
+    model="gpt-4-turbo",
+    tools=default_tools(domains=["inventory"]),
 )
