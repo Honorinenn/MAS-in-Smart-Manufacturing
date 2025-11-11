@@ -1,12 +1,17 @@
-from google.adk.agents import Agent
-from ..shared_tools import default_tools
+from google.adk.agents import LlmAgent as Agent
+#from ..shared_tools import default_tools
 
 logistics_agent = Agent(
     name="logistics_agent",
-    instructions=(
-        "Coordinate inbound/outbound shipments, fleet ETAs, and dock schedules. "
-        "Use IoT-Cloud telemetry and MCP.Logistics; replan routes and notify Production/Inventory of impacts."
-    ),
-    model="gpt-4-turbo",
-    tools=default_tools(domains=["logistics"]),
+    model="gemini-2.0-flash",
+   # model_config={
+   #     "system_instruction": {
+   #         "parts": [{
+   #             "text": "Coordinate inbound/outbound shipments, fleet ETAs, and dock schedules. "
+   #                     "Use IoT-Cloud telemetry and MCP.Logistics; replan routes and notify Production/Inventory of impacts."
+   #         }]
+   #     }
+   # },
+   # 
+   #  tools=default_tools(domains=["logistics"]),'''
 )
