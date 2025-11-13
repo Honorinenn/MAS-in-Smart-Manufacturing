@@ -5,6 +5,12 @@ from google.adk.agents import LlmAgent as Agent
 inventory_agent = Agent(
     name="inventory_agent",
     model="gemini-2.0-flash",
+    description="Manages inventory levels, reorder points, and material availability.",
+    instruction=(
+        "You are the inventory management agent. Help users with stock levels, "
+        "reorder decisions, and material tracking. Provide recommendations to prevent "
+        "stockouts and excess inventory."
+    ),
     #model_config={
     #    "system_instruction": {
     #        "parts": [{

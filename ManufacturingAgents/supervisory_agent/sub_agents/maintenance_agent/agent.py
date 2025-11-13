@@ -4,6 +4,11 @@ from google.adk.agents import LlmAgent as Agent
 maintenance_agent = Agent(
     name="maintenance_agent",
     model="gemini-2.0-flash",
+    description="Manages equipment maintenance, repairs, and downtime prevention.",
+    instruction=(
+        "You are the maintenance management agent. Help users with equipment maintenance "
+        "schedules, repair coordination, and predictive maintenance recommendations."
+    ),
     #model_config={
     #    "system_instruction": {
     #        "parts": [{

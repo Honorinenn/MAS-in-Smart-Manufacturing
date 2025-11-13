@@ -4,6 +4,11 @@ from google.adk.agents import LlmAgent as Agent
 quality_control_agent = Agent(
     name="quality_control_agent",
     model="gemini-2.0-flash",
+    description="Monitors product quality, defect tracking, and compliance.",
+    instruction=(
+        "You are the quality control agent. Help users with quality metrics, "
+        "defect analysis, and compliance monitoring."
+    ),
     #model_config={
     #    "system_instruction": {
     #        "parts": [{
