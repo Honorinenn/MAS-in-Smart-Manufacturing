@@ -1,0 +1,7 @@
+shipment_id,order_id,customer,product,quantity,scheduled_date,status,priority,delivery_date,carrier,tracking_number,estimated_cost
+SH001,ORD1001,Customer A,Product X,1000,2024-11-20,scheduled,high,,Carrier 1,TRK123456,450.0
+SH002,ORD1002,Customer B,Product Y,500,2024-11-18,in_transit,medium,2024-11-18,Carrier 2,TRK123457,280.0
+SH003,ORD1003,Customer C,Product X,750,2024-11-22,preparing,high,,Carrier 1,,350.0
+SH004,ORD1004,Customer D,Product Z,300,2024-11-25,scheduled,low,,Carrier 3,,180.0
+SH005,ORD1005,Customer E,Product Y,800,2024-11-19,delivered,medium,2024-11-19,Carrier 2,TRK123458,320.0
+SH006,ORD1006,Customer A,Product X,1200,2024-11-30,scheduled,high,,Carrier 1,,520.0

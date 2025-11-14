@@ -1,0 +1,19 @@
+timestamp,batch_id,machine_id,product_id,defect_rate,quality_score,defect_type,inspection_status,inspector,rework_required
+2024-11-01 08:00:00,B1234,M003,PX000,88.32,11.68,surface_defect,failed,QC-01,1
+2024-11-01 08:15:00,B1235,M004,PX001,77.71,22.29,none,passed,QC-02,0
+2024-11-01 08:30:00,B1236,M001,PX002,75.74,24.26,none,passed,QC-03,0
+2024-11-01 08:45:00,B1237,M003,PX003,79.65,20.35,none,passed,QC-01,0
+2024-11-01 09:00:00,B1238,M003,PX004,81.34,18.66,surface_defect,passed,QC-02,0
+2024-11-01 09:15:00,B1239,M004,PX005,100.0,0.0,dimension,failed,QC-03,1
+2024-11-01 09:30:00,B1240,M001,PX006,100.0,0.0,dimension,failed,QC-01,1
+2024-11-01 09:45:00,B1241,M001,PX007,78.07,21.93,none,passed,QC-02,0
+2024-11-01 10:00:00,B1242,M003,PX008,71.88,28.12,none,passed,QC-03,0
+2024-11-01 10:15:00,B1243,M002,PX009,71.75,28.25,none,passed,QC-01,0
+2024-11-01 10:30:00,B1244,M003,PX010,84.62,15.38,surface_defect,passed,QC-02,0
+2024-11-01 10:45:00,B1245,M003,PX011,100.0,0.0,dimension,failed,QC-03,1
+2024-11-01 11:00:00,B1246,M003,PX012,76.96,23.04,none,passed,QC-01,0
+2024-11-01 11:15:00,B1247,M003,PX013,90.48,9.52,dimension,failed,QC-02,1
+2024-11-01 11:30:00,B1248,M004,PX014,81.12,18.88,surface_defect,passed,QC-03,0
+2024-11-01 11:45:00,B1249,M001,PX015,82.52,17.48,surface_defect,passed,QC-01,0
+2024-11-01 12:00:00,B1250,M004,PX016,75.49,24.51,none,passed,QC-02,0
+2024-11-01 12:15:00,B1251,M004,PX017,85.56,14.44,surface_defect,failed,QC-03,1

@@ -1,0 +1,5 @@
+machine_id,machine_type,last_maintenance,hours_since_maintenance,total_downtime_hours,avg_temperature,avg_vibration,predicted_failure_prob,next_maintenance_due,maintenance_type,status,priority
+M001,Drill,2024-10-15,720,1.95,71.95,1.95,0.15,2024-11-20,preventive,operational,medium
+M002,Welder,2024-11-01,288,0.0,76.42,1.71,0.05,2024-12-01,none,operational,low
+M003,Welder,2024-10-20,576,1.4,77.31,2.81,0.25,2024-11-15,predictive,needs_attention,high
+M004,Conveyor,2024-11-05,192,0.63,83.44,3.63,0.08,2024-12-10,none,operational,low

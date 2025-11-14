@@ -1,0 +1,7 @@
+material_id,material_name,current_stock,reorder_point,optimal_stock,unit_cost,lead_time_days,supplier,consumed_last_24h,status,reorder_needed,last_updated
+MAT001,Steel Plate,5000,1000,8000,25.5,7,Supplier A,450,sufficient,0,2025-11-14 02:12:43
+MAT002,Aluminum Rod,3200,800,5000,18.75,5,Supplier B,280,sufficient,0,2025-11-14 02:12:43
+MAT003,Welding Wire,1500,500,3000,12.3,3,Supplier C,180,low,1,2025-11-14 02:12:43
+MAT004,Cutting Fluid,800,200,1500,8.5,2,Supplier D,45,sufficient,0,2025-11-14 02:12:43
+MAT005,Bolts M10,45000,10000,80000,0.15,5,Supplier E,3200,sufficient,0,2025-11-14 02:12:43
+MAT006,Paint,2500,500,5000,45.0,10,Supplier F,120,low,1,2025-11-14 02:12:43

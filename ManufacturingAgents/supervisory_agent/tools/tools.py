@@ -159,3 +159,37 @@ def mcp_call(domain: str, intent: str, data: dict) -> dict:
             "domain": domain,
             "intent": intent
         }
+
+def get_current_time() -> str:
+    """
+    Return the current time as an ISO-formatted string.
+    This is used by the supervisory_agent for time-aware reasoning.
+    """
+    return datetime.now().isoformat()
+
+def query_timescaledb(query: str) -> dict:
+    """
+    Placeholder TimescaleDB query tool.
+    """
+    return {
+        "success": False,
+        "error": "query_timescaledb is not implemented yet. Configure TimescaleDB connection and implement this function.",
+        "query": query,
+        "timestamp": datetime.now().isoformat(),
+    }
+
+
+def publish_kafka(topic: str, message: dict) -> dict:
+    """
+    Placeholder Kafka publisher tool.
+
+    Currently does NOT publish to Kafka; it just echoes back the message
+    so the supervisory_agent can start without Kafka configured.
+    """
+    return {
+        "success": False,
+        "info": "publish_kafka is a stub and did not actually send to Kafka.",
+        "topic": topic,
+        "message": message,
+        "timestamp": datetime.now().isoformat(),
+    }    
