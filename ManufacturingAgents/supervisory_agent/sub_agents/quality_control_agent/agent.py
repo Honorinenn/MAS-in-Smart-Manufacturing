@@ -1,6 +1,7 @@
 # File: supervisory_agent/sub_agents/quality_control_agent/agent.py
 
 from google.adk.agents import LlmAgent as Agent
+from ...tools.tools import mcp_call
 
 quality_control_agent = Agent(
     name="quality_control_agent",

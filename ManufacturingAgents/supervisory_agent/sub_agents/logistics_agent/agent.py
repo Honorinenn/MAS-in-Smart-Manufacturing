@@ -1,6 +1,7 @@
 # File: supervisory_agent/sub_agents/logistics_agent/agent.py
 
 from google.adk.agents import LlmAgent as Agent
+from ...tools.tools import mcp_call
 
 logistics_agent = Agent(
     name="logistics_agent",
