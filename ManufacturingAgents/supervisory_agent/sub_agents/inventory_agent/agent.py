@@ -63,5 +63,8 @@ inventory_agent = Agent(
         "- Coordinate with production_agent for upcoming material requirements\n"
         "- Do NOT transfer to supervisory_agent unless issue requires cross-domain coordination"
     ),
+    tools=[
+        mcp_call,
+    ],
 )
 

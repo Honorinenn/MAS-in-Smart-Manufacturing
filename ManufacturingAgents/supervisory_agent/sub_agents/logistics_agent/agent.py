@@ -69,4 +69,7 @@ logistics_agent = Agent(
         "- Coordinate with inventory_agent for materials needed for orders\n"
         "- Proactively identify potential delays and suggest alternatives"
     ),
+    tools=[
+        mcp_call,
+    ],
 )

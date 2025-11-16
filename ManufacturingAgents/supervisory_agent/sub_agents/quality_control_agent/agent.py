@@ -70,4 +70,7 @@ quality_control_agent = Agent(
         "- Alert relevant agents when quality issues require their attention\n"
         "- Track trends over time to identify systemic issues"
     ),
+    tools=[
+        mcp_call,
+    ],
 )

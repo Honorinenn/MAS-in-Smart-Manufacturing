@@ -63,5 +63,8 @@ maintenance_agent = Agent(
         "- Consider production impact when scheduling maintenance\n"
         "- Alert production_agent before taking machines offline"
     ),
+    tools=[
+        mcp_call,
+    ],
 )
 
