@@ -8,7 +8,7 @@
 
 // ⚠️ WEBPACK/CRA: Use process.env.REACT_APP_* (NOT import.meta.env.VITE_*)
 const config = {
-  apiBaseUrl: process.env.REACT_APP_API_URL || 'http://localhost:8000',
+  apiBaseUrl: process.env.REACT_APP_API_URL || 'https://hallowed-superstition-49gvj4j54xpc74xq-8000.app.github.dev',
   mcpEndpoint: process.env.REACT_APP_MCP_ENDPOINT || '/api/mcp',
   timeout: 30000, // 30 seconds
 };
@@ -218,8 +218,14 @@ export const getSystemAlerts = async (severity = 'all') => {
  */
 export const subscribeToAgentUpdates = (agentId, callback) => {
   // Use WebSocket URL (replace http with ws)
-  const wsUrl = config.apiBaseUrl.replace(/^http/, 'ws');
-  const ws = new WebSocket(`${wsUrl}/ws/agent/${agentId}`);
+  // Remove any trailing slash from apiBaseUrl
+const httpBase = config.apiBaseUrl.replace(/\/+$/, "");
+
+// Convert http → ws and https → wss
+const wsBase = httpBase.replace(/^http/i, "ws");
+
+// Final WebSocket URL
+const ws = new WebSocket(`${wsBase}/ws/agent/${agentId}`);
 
   ws.onmessage = (event) => {
     try {

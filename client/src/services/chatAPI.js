@@ -1,227 +1,154 @@
 /**
  * Smart Factory MAS - Chat API Service
- * Webpack/Create React App Version
- * 
- * Handles LLM chat integration (Claude, GPT, etc.)
- * Environment variables use REACT_APP_ prefix
+ * Hugging Face API Version - DEBUG MODE
  */
 
-// ⚠️ WEBPACK/CRA: Use process.env.REACT_APP_* (NOT import.meta.env.VITE_*)
+// ⚠️ TEMPORARY: Replace with your actual token for testing
+const HF_TOKEN = ''; // ← PASTE YOUR TOKEN HERE
+
 const config = {
-  llmApiUrl: process.env.REACT_APP_LLM_API_URL || 'https://api.anthropic.com/v1/messages',
-  llmApiKey: process.env.REACT_APP_LLM_API_KEY || '',
-  model: process.env.REACT_APP_LLM_MODEL || 'claude-3-5-sonnet-20241022',
-  maxTokens: parseInt(process.env.REACT_APP_LLM_MAX_TOKENS) || 4096,
-  temperature: parseFloat(process.env.REACT_APP_LLM_TEMPERATURE) || 0.7,
-  timeout: 60000, // 60 seconds
+  apiUrl: 'https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2',
+  apiKey: HF_TOKEN || process.env.REACT_APP_HF_API_KEY || '',
+  timeout: 30000,
 };
+
+// Debug: Log configuration on load
+console.log('🔧 Chat API Config:', {
+  hasToken: !!config.apiKey,
+  tokenStartsWith: config.apiKey?.substring(0, 4),
+  apiUrl: config.apiUrl
+});
 
 /**
  * Agent-specific system prompts
  */
 const AGENT_PROMPTS = {
-  production: `You are the Production Agent in a smart factory multi-agent system. 
-Your role is to monitor and optimize production processes, schedule tasks, 
-manage production lines, and ensure efficient manufacturing operations.
-Provide concise, actionable insights about production status, bottlenecks, and optimization opportunities.`,
-
-  inventory: `You are the Inventory Agent in a smart factory multi-agent system.
-Your role is to track inventory levels, predict material needs, manage stock,
-trigger reorders, and prevent stockouts or overstocking.
-Provide clear insights about inventory status, reorder recommendations, and material availability.`,
-
-  logistics: `You are the Logistics Agent in a smart factory multi-agent system.
-Your role is to coordinate shipping, receiving, warehouse operations,
-optimize delivery routes, and manage supply chain logistics.
-Provide updates on shipment status, delivery schedules, and logistics optimization.`,
-
-  maintenance: `You are the Maintenance Agent in a smart factory multi-agent system.
-Your role is to monitor equipment health, predict maintenance needs,
-schedule preventive maintenance, and respond to equipment failures.
-Provide insights on equipment status, maintenance schedules, and failure predictions.`,
-
-  quality: `You are the Quality Control Agent in a smart factory multi-agent system.
-Your role is to monitor product quality, detect defects, analyze quality trends,
-ensure compliance with standards, and recommend quality improvements.
-Provide reports on quality metrics, defect analysis, and improvement recommendations.`,
-
-  supervisory: `You are the Supervisory Agent in a smart factory multi-agent system.
-Your role is to coordinate all other agents, make high-level decisions,
-resolve conflicts between agents, and provide overall system oversight.
-Provide comprehensive insights about the entire factory system and agent coordination.`,
+  production: `You are the Production Agent in a smart factory. Provide concise insights about production status.`,
+  inventory: `You are the Inventory Agent in a smart factory. Provide insights about inventory levels.`,
+  logistics: `You are the Logistics Agent in a smart factory. Provide insights about shipping and logistics.`,
+  maintenance: `You are the Maintenance Agent in a smart factory. Provide insights about equipment maintenance.`,
+  quality: `You are the Quality Control Agent in a smart factory. Provide insights about product quality.`,
+  supervisory: `You are the Supervisory Agent coordinating all factory operations. Provide comprehensive system insights.`,
 };
 
 /**
- * Send chat message to LLM
+ * Send chat message to Hugging Face API
  */
 export const sendChatMessage = async (message, agentId = 'supervisory', conversationHistory = []) => {
-  if (!config.llmApiKey) {
-    throw new Error('LLM API key not configured. Please set REACT_APP_LLM_API_KEY in your .env file.');
+  console.log('📤 Sending message:', { message, agentId });
+  
+  // Validation
+  if (!config.apiKey || config.apiKey === 'PASTE_YOUR_TOKEN_HERE') {
+    console.error('❌ No API key configured!');
+    throw new Error('Please paste your Hugging Face token in chatAPI.js (line 7) or set REACT_APP_HF_API_KEY in .env');
   }
 
+  if (!config.apiKey.startsWith('hf_')) {
+    console.error('❌ Invalid token format:', config.apiKey.substring(0, 10));
+    throw new Error('Invalid Hugging Face token format. Token should start with "hf_"');
+  }
+
+  console.log('✅ Token validated');
+
   try {
-    // Build messages array with system prompt and conversation history
-    const messages = [
-      {
-        role: 'user',
-        content: message,
-      },
-    ];
+    // Build prompt
+    const systemPrompt = AGENT_PROMPTS[agentId] || AGENT_PROMPTS.supervisory;
+    let fullPrompt = `${systemPrompt}\n\nHuman: ${message}\nAssistant:`;
 
-    // Add conversation history if provided
-    if (conversationHistory && conversationHistory.length > 0) {
-      messages.unshift(...conversationHistory);
-    }
+    console.log('📝 Full prompt:', fullPrompt.substring(0, 100) + '...');
 
-    const requestBody = {
-      model: config.model,
-      max_tokens: config.maxTokens,
-      temperature: config.temperature,
-      system: AGENT_PROMPTS[agentId] || AGENT_PROMPTS.supervisory,
-      messages: messages,
-    };
-
+    // Make request
+    console.log('🌐 Sending fetch request to:', config.apiUrl);
+    
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), config.timeout);
+    const timeoutId = setTimeout(() => {
+      console.error('⏱️ Request timeout!');
+      controller.abort();
+    }, config.timeout);
 
-    const response = await fetch(config.llmApiUrl, {
+    const response = await fetch(config.apiUrl, {
       method: 'POST',
       headers: {
+        'Authorization': `Bearer ${config.apiKey}`,
         'Content-Type': 'application/json',
-        'x-api-key': config.llmApiKey,
-        'anthropic-version': '2023-06-01',
       },
-      body: JSON.stringify(requestBody),
+      body: JSON.stringify({
+        inputs: fullPrompt,
+        parameters: {
+          max_new_tokens: 200,
+          temperature: 0.7,
+          top_p: 0.95,
+          do_sample: true,
+          return_full_text: false,
+        },
+      }),
       signal: controller.signal,
     });
 
     clearTimeout(timeoutId);
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(
-        `LLM API error (${response.status}): ${errorData.error?.message || response.statusText}`
-      );
-    }
-
-    const data = await response.json();
-
-    // Extract text from Claude API response
-    const responseText = data.content?.[0]?.text || data.message || 'No response';
-
-    return {
-      success: true,
-      message: responseText,
-      usage: data.usage,
-      model: data.model,
-      agentId: agentId,
-    };
-  } catch (error) {
-    console.error('Chat API Error:', error);
-
-    if (error.name === 'AbortError') {
-      throw new Error('Request timeout. The LLM took too long to respond.');
-    }
-
-    throw new Error(`Failed to get response from ${agentId} agent: ${error.message}`);
-  }
-};
-
-/**
- * Send streaming chat message (for real-time responses)
- */
-export const sendStreamingChatMessage = async (
-  message,
-  agentId = 'supervisory',
-  conversationHistory = [],
-  onChunk
-) => {
-  if (!config.llmApiKey) {
-    throw new Error('LLM API key not configured. Please set REACT_APP_LLM_API_KEY in your .env file.');
-  }
-
-  try {
-    const messages = [
-      {
-        role: 'user',
-        content: message,
-      },
-    ];
-
-    if (conversationHistory && conversationHistory.length > 0) {
-      messages.unshift(...conversationHistory);
-    }
-
-    const requestBody = {
-      model: config.model,
-      max_tokens: config.maxTokens,
-      temperature: config.temperature,
-      system: AGENT_PROMPTS[agentId] || AGENT_PROMPTS.supervisory,
-      messages: messages,
-      stream: true,
-    };
-
-    const response = await fetch(config.llmApiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': config.llmApiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify(requestBody),
+    console.log('📥 Response received:', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(
-        `LLM API error (${response.status}): ${errorData.error?.message || response.statusText}`
-      );
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let fullMessage = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      const chunk = decoder.decode(value);
-      const lines = chunk.split('\n');
-
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          try {
-            const data = JSON.parse(line.slice(6));
-
-            if (data.type === 'content_block_delta' && data.delta?.text) {
-              const text = data.delta.text;
-              fullMessage += text;
-              if (onChunk) {
-                onChunk(text, false);
-              }
-            }
-
-            if (data.type === 'message_stop') {
-              if (onChunk) {
-                onChunk('', true);
-              }
-            }
-          } catch (e) {
-            // Skip invalid JSON
-          }
-        }
+      console.error('❌ API Error:', errorData);
+      
+      // Handle specific errors
+      if (response.status === 503 || errorData.error?.includes('loading')) {
+        throw new Error('⏳ Model is loading. Please wait 20-30 seconds and try again.');
       }
+      
+      if (response.status === 401 || response.status === 403) {
+        throw new Error('🔑 Invalid API token. Please check your Hugging Face token.');
+      }
+      
+      if (response.status === 429) {
+        throw new Error('⏱️ Rate limit exceeded. Please wait a minute and try again.');
+      }
+      
+      throw new Error(`Hugging Face API error (${response.status}): ${errorData.error || response.statusText}`);
     }
+
+    const data = await response.json();
+    console.log('📦 Response data:', data);
+    
+    // Extract generated text
+    let responseText = '';
+    if (Array.isArray(data) && data.length > 0) {
+      responseText = data[0].generated_text || 'No response generated';
+    } else if (data.generated_text) {
+      responseText = data.generated_text;
+    } else {
+      console.warn('⚠️ Unexpected response format:', data);
+      responseText = 'Response received but in unexpected format. Check console for details.';
+    }
+
+    responseText = responseText.trim();
+    console.log('✅ Final response:', responseText.substring(0, 100) + '...');
 
     return {
       success: true,
-      message: fullMessage,
+      message: responseText,
       agentId: agentId,
+      model: 'Mistral-7B-Instruct',
     };
+
   } catch (error) {
-    console.error('Streaming Chat API Error:', error);
-    throw new Error(`Failed to stream response from ${agentId} agent: ${error.message}`);
+    console.error('💥 Error in sendChatMessage:', error);
+
+    if (error.name === 'AbortError') {
+      throw new Error('⏱️ Request timeout. The model took too long to respond.');
+    }
+
+    if (error.message.includes('Failed to fetch')) {
+      throw new Error('🌐 Network error. Check your internet connection or firewall settings.');
+    }
+
+    throw error;
   }
 };
 
@@ -232,58 +159,11 @@ export const getAgentContext = (agentId) => {
   return {
     agentId: agentId,
     systemPrompt: AGENT_PROMPTS[agentId] || AGENT_PROMPTS.supervisory,
-    capabilities: getAgentCapabilities(agentId),
   };
 };
 
 /**
- * Get agent capabilities
- */
-const getAgentCapabilities = (agentId) => {
-  const capabilities = {
-    production: [
-      'Monitor production lines',
-      'Optimize schedules',
-      'Detect bottlenecks',
-      'Track efficiency',
-    ],
-    inventory: [
-      'Track stock levels',
-      'Predict material needs',
-      'Trigger reorders',
-      'Manage warehouse',
-    ],
-    logistics: [
-      'Coordinate shipments',
-      'Optimize routes',
-      'Track deliveries',
-      'Manage supply chain',
-    ],
-    maintenance: [
-      'Monitor equipment',
-      'Predict failures',
-      'Schedule maintenance',
-      'Track repairs',
-    ],
-    quality: [
-      'Inspect products',
-      'Detect defects',
-      'Analyze trends',
-      'Ensure compliance',
-    ],
-    supervisory: [
-      'Coordinate agents',
-      'Make decisions',
-      'Resolve conflicts',
-      'Provide oversight',
-    ],
-  };
-
-  return capabilities[agentId] || [];
-};
-
-/**
- * Format conversation history for LLM
+ * Format conversation history for API
  */
 export const formatConversationHistory = (messages) => {
   return messages.map((msg) => ({
@@ -298,31 +178,25 @@ export const formatConversationHistory = (messages) => {
 export const validateConfig = () => {
   const issues = [];
 
-  if (!config.llmApiKey) {
-    issues.push('REACT_APP_LLM_API_KEY is not set');
-  }
-
-  if (!config.llmApiUrl) {
-    issues.push('REACT_APP_LLM_API_URL is not set');
+  if (!config.apiKey || config.apiKey === 'PASTE_YOUR_TOKEN_HERE') {
+    issues.push('Token not configured in chatAPI.js');
   }
 
   return {
     valid: issues.length === 0,
     issues: issues,
     config: {
-      hasApiKey: !!config.llmApiKey,
-      apiUrl: config.llmApiUrl,
-      model: config.model,
+      hasApiKey: !!config.apiKey,
+      apiUrl: config.apiUrl,
+      model: 'Mistral-7B-Instruct',
     },
   };
 };
 
-// Export for testing/debugging
 export const getConfig = () => ({ ...config });
 
 export default {
   sendChatMessage,
-  sendStreamingChatMessage,
   getAgentContext,
   formatConversationHistory,
   validateConfig,

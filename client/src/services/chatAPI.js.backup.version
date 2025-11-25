@@ -1,0 +1,231 @@
+/**
+ * Smart Factory MAS - Chat API Service
+ * Hugging Face API Version
+ * 
+ * Uses Hugging Face Inference API (FREE tier available)
+ */
+
+// Configuration
+const config = {
+  apiUrl: 'https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2',
+  apiKey: process.env.REACT_APP_HF_API_KEY || '',
+  timeout: 30000, // 30 seconds
+};
+
+/**
+ * Agent-specific system prompts
+ */
+const AGENT_PROMPTS = {
+  production: `You are the Production Agent in a smart factory. Your role is to monitor production lines, optimize schedules, and manage manufacturing operations. Provide concise, actionable insights.`,
+  
+  inventory: `You are the Inventory Agent in a smart factory. Your role is to track stock levels, predict material needs, and manage inventory. Provide clear insights about inventory status.`,
+  
+  logistics: `You are the Logistics Agent in a smart factory. Your role is to coordinate shipping, optimize delivery routes, and manage supply chain logistics.`,
+  
+  maintenance: `You are the Maintenance Agent in a smart factory. Your role is to monitor equipment health, predict maintenance needs, and schedule repairs.`,
+  
+  quality: `You are the Quality Control Agent in a smart factory. Your role is to monitor product quality, detect defects, and ensure compliance.`,
+  
+  supervisory: `You are the Supervisory Agent coordinating all factory operations. Provide comprehensive insights about the entire system.`,
+};
+
+/**
+ * Send chat message to Hugging Face API
+ */
+export const sendChatMessage = async (message, agentId = 'supervisory', conversationHistory = []) => {
+  if (!config.apiKey) {
+    throw new Error('Hugging Face API key not configured. Please set REACT_APP_HF_API_KEY in your .env file.');
+  }
+
+  try {
+    // Build prompt with system context and conversation history
+    const systemPrompt = AGENT_PROMPTS[agentId] || AGENT_PROMPTS.supervisory;
+    
+    let fullPrompt = `${systemPrompt}\n\n`;
+    
+    // Add conversation history (last 5 messages for context)
+    const recentHistory = conversationHistory.slice(-5);
+    if (recentHistory.length > 0) {
+      fullPrompt += "Previous conversation:\n";
+      recentHistory.forEach(msg => {
+        const role = msg.role === 'user' ? 'Human' : 'Assistant';
+        fullPrompt += `${role}: ${msg.content}\n`;
+      });
+      fullPrompt += "\n";
+    }
+    
+    // Add current message
+    fullPrompt += `Human: ${message}\nAssistant:`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), config.timeout);
+
+    const response = await fetch(config.apiUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${config.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        inputs: fullPrompt,
+        parameters: {
+          max_new_tokens: 512,
+          temperature: 0.7,
+          top_p: 0.95,
+          do_sample: true,
+          return_full_text: false,
+        },
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      
+      // Handle model loading (common on free tier)
+      if (response.status === 503 || errorData.error?.includes('loading')) {
+        throw new Error('Model is loading. Please wait 20 seconds and try again.');
+      }
+      
+      throw new Error(
+        `Hugging Face API error (${response.status}): ${errorData.error || response.statusText}`
+      );
+    }
+
+    const data = await response.json();
+    
+    // Extract generated text
+    let responseText = '';
+    if (Array.isArray(data) && data.length > 0) {
+      responseText = data[0].generated_text || 'No response generated';
+    } else if (data.generated_text) {
+      responseText = data.generated_text;
+    } else {
+      responseText = 'No response generated';
+    }
+
+    // Clean up response (remove prompt echo if present)
+    responseText = responseText.trim();
+
+    return {
+      success: true,
+      message: responseText,
+      agentId: agentId,
+      model: 'Mistral-7B-Instruct',
+    };
+
+  } catch (error) {
+    console.error('Hugging Face API Error:', error);
+
+    if (error.name === 'AbortError') {
+      throw new Error('Request timeout. The model took too long to respond.');
+    }
+
+    throw new Error(`Failed to get response from ${agentId} agent: ${error.message}`);
+  }
+};
+
+/**
+ * Get agent-specific context
+ */
+export const getAgentContext = (agentId) => {
+  return {
+    agentId: agentId,
+    systemPrompt: AGENT_PROMPTS[agentId] || AGENT_PROMPTS.supervisory,
+    capabilities: getAgentCapabilities(agentId),
+  };
+};
+
+/**
+ * Get agent capabilities
+ */
+const getAgentCapabilities = (agentId) => {
+  const capabilities = {
+    production: [
+      'Monitor production lines',
+      'Optimize schedules',
+      'Detect bottlenecks',
+      'Track efficiency',
+    ],
+    inventory: [
+      'Track stock levels',
+      'Predict material needs',
+      'Trigger reorders',
+      'Manage warehouse',
+    ],
+    logistics: [
+      'Coordinate shipments',
+      'Optimize routes',
+      'Track deliveries',
+      'Manage supply chain',
+    ],
+    maintenance: [
+      'Monitor equipment',
+      'Predict failures',
+      'Schedule maintenance',
+      'Track repairs',
+    ],
+    quality: [
+      'Inspect products',
+      'Detect defects',
+      'Analyze trends',
+      'Ensure compliance',
+    ],
+    supervisory: [
+      'Coordinate agents',
+      'Make decisions',
+      'Resolve conflicts',
+      'Provide oversight',
+    ],
+  };
+
+  return capabilities[agentId] || [];
+};
+
+/**
+ * Format conversation history for API
+ */
+export const formatConversationHistory = (messages) => {
+  return messages.map((msg) => ({
+    role: msg.role === 'user' ? 'user' : 'assistant',
+    content: msg.content,
+  }));
+};
+
+/**
+ * Validate API configuration
+ */
+export const validateConfig = () => {
+  const issues = [];
+
+  if (!config.apiKey) {
+    issues.push('REACT_APP_HF_API_KEY is not set');
+  }
+
+  if (!config.apiUrl) {
+    issues.push('API URL is not configured');
+  }
+
+  return {
+    valid: issues.length === 0,
+    issues: issues,
+    config: {
+      hasApiKey: !!config.apiKey,
+      apiUrl: config.apiUrl,
+      model: 'Mistral-7B-Instruct',
+    },
+  };
+};
+
+// Export for testing/debugging
+export const getConfig = () => ({ ...config });
+
+export default {
+  sendChatMessage,
+  getAgentContext,
+  formatConversationHistory,
+  validateConfig,
+  getConfig,
+};
