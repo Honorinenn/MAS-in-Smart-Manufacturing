@@ -219,13 +219,13 @@ export const getSystemAlerts = async (severity = 'all') => {
 export const subscribeToAgentUpdates = (agentId, callback) => {
   // Use WebSocket URL (replace http with ws)
   // Remove any trailing slash from apiBaseUrl
-const httpBase = config.apiBaseUrl.replace(/\/+$/, "");
+  const httpBase = config.apiBaseUrl.replace(/\/+$/, "");
 
-// Convert http → ws and https → wss
-const wsBase = httpBase.replace(/^http/i, "ws");
+  // Convert http → ws and https → wss
+  const wsBase = httpBase.replace(/^http/i, "ws");
 
-// Final WebSocket URL
-const ws = new WebSocket(`${wsBase}/ws/agent/${agentId}`);
+  // Final WebSocket URL
+  const ws = new WebSocket(`${wsBase}/ws/agent/${agentId}`);
 
   ws.onmessage = (event) => {
     try {

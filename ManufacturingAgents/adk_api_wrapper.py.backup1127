@@ -14,54 +14,41 @@ import json
 import os
 import uvicorn
 import httpx  # for Hugging Face calls
+# ============================================================================ #
+# CONFIG                                                                       #
+# ============================================================================ #
 
 from dotenv import load_dotenv
-
-# ---------------------------------------------------------------------------
-# CONFIG
-# ---------------------------------------------------------------------------
-
-# Load variables from ManufacturingAgents/.env
 load_dotenv()
 
-# Choose your HF model here
 HF_MODEL_ID = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
-
-HF_API_URL_ROUTER = (
-    f"https://router.huggingface.co/hf-inference/models/{HF_MODEL_ID}"
-)
-HF_API_URL_LEGACY = (
-    f"https://api-inference.huggingface.co/models/{HF_MODEL_ID}"
-)
+HF_API_URL = f"https://router.huggingface.co/hf-inference/models/{HF_MODEL_ID}"
 
 HF_API_TOKEN = os.getenv("HF_API_TOKEN")  # set this in ManufacturingAgents/.env
 
-print("HF_MODEL_ID:", HF_MODEL_ID)
-print("HF_API_URL_ROUTER:", HF_API_URL_ROUTER)
-print("HF_API_URL_LEGACY:", HF_API_URL_LEGACY)
+print("HF_API_URL:", HF_API_URL)
 print("HF_API_TOKEN loaded:", bool(HF_API_TOKEN))
 
-# ---------------------------------------------------------------------------
-# FASTAPI APP & CORS
-# ---------------------------------------------------------------------------
 
+# Initialize FastAPI
 app = FastAPI(
     title="ADK-React Bridge API",
     description="Bridge between Agent Development Kit and React Dashboard",
     version="1.0.0",
 )
 
+# Enable CORS (you can tighten this later)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # you can restrict later to your 3000 URL
+    allow_origins=["*"],  # or your specific 3000 URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ---------------------------------------------------------------------------
-# DATA MODELS
-# ---------------------------------------------------------------------------
+# ============================================================================ #
+# DATA MODELS                                                                  #
+# ============================================================================ #
 
 
 class MCPRequest(BaseModel):
@@ -78,9 +65,9 @@ class MCPResponse(BaseModel):
     error: Optional[Dict[str, Any]] = None
 
 
-# ---------------------------------------------------------------------------
-# ADK INTEGRATION
-# ---------------------------------------------------------------------------
+# ============================================================================ #
+# ADK INTEGRATION                                                              #
+# ============================================================================ #
 
 
 class ADKBridge:
@@ -102,6 +89,7 @@ class ADKBridge:
     def _check_adk_available(self) -> bool:
         """Check if ADK is available"""
         try:
+            # Adjust this import to match your ADK setup
             # from agent import SupervisoryAgent
             return True
         except ImportError:
@@ -236,24 +224,13 @@ class ADKBridge:
 # Initialize bridge
 adk_bridge = ADKBridge()
 
-# ---------------------------------------------------------------------------
-# HUGGING FACE LLM CALL
-# ---------------------------------------------------------------------------
-
-
-def _extract_generated_text(data: Any) -> str:
-    """Normalize HF responses into plain text."""
-    if isinstance(data, list) and data:
-        # Standard text-generation format
-        return (data[0].get("generated_text") or "").strip()
-    if isinstance(data, dict):
-        return (data.get("generated_text") or "").strip()
-    return "No response generated"
+# ============================================================================ #
+# HUGGING FACE LLM CALL                                                        #
+# ============================================================================ #
 
 
 async def call_hf_model(prompt: str) -> str:
-    """Call Hugging Face Inference API (router → legacy)."""
-
+    """Call Hugging Face Inference API server-side."""
     if not HF_API_TOKEN:
         raise RuntimeError("HF_API_TOKEN environment variable not set")
 
@@ -274,45 +251,28 @@ async def call_hf_model(prompt: str) -> str:
     }
 
     async with httpx.AsyncClient(timeout=30.0) as client:
-        # ---- 1) Try router endpoint ----------------------------------------
+        resp = await client.post(HF_API_URL, headers=headers, json=payload)
         try:
-            print("➡️  HF router POST:", HF_API_URL_ROUTER)
-            resp = await client.post(HF_API_URL_ROUTER, headers=headers, json=payload)
-            try:
-                resp.raise_for_status()
-            except httpx.HTTPStatusError:
-                print("HF router HTTP error:", resp.status_code, resp.text)
-                raise
-            data = resp.json()
-            text = _extract_generated_text(data) or "No response generated"
-            print("✅ HF router success, text length:", len(text))
-            return text
+            resp.raise_for_status()
+        except httpx.HTTPStatusError as e:
+            # Extra logging so we see the real problem
+            print("HF HTTP error:", resp.status_code, resp.text)
+            raise
 
-        except Exception as router_err:
-            print("⚠️ HF router error, will try legacy endpoint:", repr(router_err))
+        data = resp.json()
 
-        # ---- 2) Fall back to legacy api-inference --------------------------
-        try:
-            print("➡️  HF legacy POST:", HF_API_URL_LEGACY)
-            resp2 = await client.post(HF_API_URL_LEGACY, headers=headers, json=payload)
-            try:
-                resp2.raise_for_status()
-            except httpx.HTTPStatusError:
-                print("HF legacy HTTP error:", resp2.status_code, resp2.text)
-                raise
-            data2 = resp2.json()
-            text2 = _extract_generated_text(data2) or "No response generated"
-            print("✅ HF legacy success, text length:", len(text2))
-            return text2
+    if isinstance(data, list) and data:
+        text = data[0].get("generated_text", "")
+    else:
+        text = data.get("generated_text", "") if isinstance(data, dict) else ""
 
-        except Exception as legacy_err:
-            print("💥 HF legacy error as well:", repr(legacy_err))
-            raise RuntimeError("Hugging Face inference failed via router and legacy") from legacy_err
+    text = (text or "No response generated").strip()
+    return text
 
 
-# ---------------------------------------------------------------------------
-# API ENDPOINTS
-# ---------------------------------------------------------------------------
+# ============================================================================ #
+# API ENDPOINTS                                                                #
+# ============================================================================ #
 
 
 @app.get("/")
@@ -477,9 +437,9 @@ async def adk_info():
     }
 
 
-# ---------------------------------------------------------------------------
-# OPTIONAL: SIMPLE WS FOR /ws/agent/{agent_id}
-# ---------------------------------------------------------------------------
+# ============================================================================ #
+# OPTIONAL: SIMPLE WS FOR /ws/agent/{agent_id}                                 #
+# ============================================================================ #
 
 
 @app.websocket("/ws/agent/{agent_id}")
@@ -487,6 +447,7 @@ async def agent_ws(websocket: WebSocket, agent_id: str):
     await websocket.accept()
     try:
         while True:
+            # For now just send periodic status updates; you can extend this.
             status = adk_bridge.get_agent_status(agent_id)
             await websocket.send_json(status)
             # Wait for client message to avoid spamming
@@ -495,9 +456,9 @@ async def agent_ws(websocket: WebSocket, agent_id: str):
         print(f"WebSocket disconnected for agent {agent_id}")
 
 
-# ---------------------------------------------------------------------------
-# RUN SERVER
-# ---------------------------------------------------------------------------
+# ============================================================================ #
+# RUN SERVER                                                                   #
+# ============================================================================ #
 
 if __name__ == "__main__":
     print("=" * 70)
